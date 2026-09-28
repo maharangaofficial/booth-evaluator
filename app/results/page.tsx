@@ -30,43 +30,63 @@ export default function Results() {
     return new Set(rows.filter((r) => r.booth === booth).map((r) => r.evaluator_name)).size;
   }
 
+  const ranked = [...BOOTHS].sort((a, b) => (averageFor(b) ?? 0) - (averageFor(a) ?? 0));
+
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-4 py-6 dark:bg-black">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Results</h1>
-          <Link href="/" className="text-sm font-medium text-zinc-500 underline dark:text-zinc-400">
-            Back to evaluate
+    <div className="flex flex-1 flex-col bg-slate-50">
+      <div className="bg-gradient-to-b from-indigo-600 to-indigo-500 px-5 pb-8 pt-8 text-white">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between">
+          <h1 className="text-xl font-semibold">Live Results</h1>
+          <Link
+            href="/"
+            className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
+          >
+            Evaluate
           </Link>
         </div>
+        <p className="mx-auto mt-1 w-full max-w-md text-sm text-indigo-100">
+          Average scores across all evaluators
+        </p>
+      </div>
 
+      <div className="mx-auto -mt-4 w-full max-w-md flex-1 px-5 pb-10">
         {loading ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading…</p>
+          <p className="mt-6 text-center text-sm text-slate-400">Loading results…</p>
         ) : (
           <div className="flex flex-col gap-4">
-            {BOOTHS.map((booth) => {
+            {ranked.map((booth, idx) => {
               const overall = averageFor(booth);
               return (
                 <div
                   key={booth}
-                  className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                  className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100"
                 >
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-50">{booth}</span>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
+                        {idx + 1}
+                      </span>
+                      <span className="font-semibold text-slate-900">{booth}</span>
+                    </div>
+                    <span className="text-xs font-medium text-slate-400">
                       {evaluatorCount(booth)} evaluator{evaluatorCount(booth) === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <div className="mb-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                    {overall !== null ? overall.toFixed(2) : "—"}
+                  <div className="mb-3 flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-indigo-600">
+                      {overall !== null ? overall.toFixed(2) : "—"}
+                    </span>
+                    <span className="text-sm text-slate-400">/ 5.00</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-sm">
                     {CRITERIA.map((c) => {
                       const avg = averageFor(booth, c.key);
                       return (
-                        <div key={c.key} className="flex justify-between">
-                          <span>{c.label}</span>
-                          <span>{avg !== null ? avg.toFixed(2) : "—"}</span>
+                        <div key={c.key} className="flex items-center justify-between">
+                          <span className="text-slate-500">{c.label}</span>
+                          <span className="font-medium text-slate-800">
+                            {avg !== null ? avg.toFixed(2) : "—"}
+                          </span>
                         </div>
                       );
                     })}

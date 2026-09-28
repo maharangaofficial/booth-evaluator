@@ -81,28 +81,36 @@ export default function Home() {
 
   if (!nameConfirmed) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 px-6 dark:bg-black">
-        <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h1 className="mb-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Booth Evaluator
-          </h1>
-          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-            Enter your name to begin evaluating booths.
+      <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-indigo-600 via-indigo-500 to-slate-100 px-6 py-16">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-2xl backdrop-blur">
+            🏆
+          </div>
+          <h1 className="text-2xl font-semibold text-white">Booth Evaluator</h1>
+          <p className="mt-1 text-sm text-indigo-100">Cross The Floor — Judging Console</p>
+        </div>
+        <div className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-xl shadow-indigo-900/10 ring-1 ring-black/5">
+          <h2 className="mb-1 text-lg font-semibold text-slate-900">Welcome, Evaluator</h2>
+          <p className="mb-5 text-sm text-slate-500">
+            Enter your name to start rating booths.
           </p>
+          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
+            Your name
+          </label>
           <input
             autoFocus
-            className="mb-3 w-full rounded-lg border border-zinc-300 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
-            placeholder="Your name"
+            className="mb-4 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-base text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            placeholder="e.g. Priya Sharma"
             value={evaluatorName}
             onChange={(e) => setEvaluatorName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && confirmName()}
           />
           <button
-            className="w-full rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900"
+            className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white shadow-sm shadow-indigo-600/30 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
             disabled={!evaluatorName.trim()}
             onClick={confirmName}
           >
-            Continue
+            Start Evaluating
           </button>
         </div>
       </div>
@@ -110,26 +118,33 @@ export default function Home() {
   }
 
   if (selectedBooth) {
+    const ratedCount = Object.keys(scores).length;
     return (
-      <div className="flex flex-1 flex-col bg-zinc-50 px-4 py-6 dark:bg-black">
-        <div className="mx-auto w-full max-w-md">
+      <div className="flex flex-1 flex-col bg-slate-50">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur">
           <button
-            className="mb-4 text-sm text-zinc-500 dark:text-zinc-400"
+            className="mb-2 flex items-center gap-1 text-sm font-medium text-indigo-600"
             onClick={() => setSelectedBooth(null)}
           >
-            ← Back to booths
+            <span aria-hidden>←</span> Back to booths
           </button>
-          <h1 className="mb-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {selectedBooth}
-          </h1>
-          <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-            Rate each criterion from 1 (low) to 5 (high).
-          </p>
+          <h1 className="text-xl font-semibold text-slate-900">{selectedBooth}</h1>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-indigo-600 transition-all"
+              style={{ width: `${(ratedCount / CRITERIA.length) * 100}%` }}
+            />
+          </div>
+        </div>
 
-          <div className="flex flex-col gap-5">
+        <div className="mx-auto w-full max-w-md flex-1 px-5 py-6">
+          <div className="flex flex-col gap-4">
             {CRITERIA.map((criterion) => (
-              <div key={criterion.key}>
-                <div className="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              <div
+                key={criterion.key}
+                className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100"
+              >
+                <div className="mb-3 text-sm font-semibold text-slate-800">
                   {criterion.label}
                 </div>
                 <div className="flex gap-2">
@@ -137,10 +152,10 @@ export default function Home() {
                     <button
                       key={value}
                       onClick={() => setScore(criterion.key, value)}
-                      className={`h-12 flex-1 rounded-lg border text-base font-semibold transition-colors ${
+                      className={`h-12 flex-1 rounded-xl border text-base font-semibold transition-all ${
                         scores[criterion.key] === value
-                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                          : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                          ? "border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                          : "border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-indigo-50"
                       }`}
                     >
                       {value}
@@ -152,11 +167,15 @@ export default function Home() {
           </div>
 
           {errorMessage && (
-            <p className="mt-4 text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+            <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {errorMessage}
+            </p>
           )}
+        </div>
 
+        <div className="sticky bottom-0 border-t border-slate-200 bg-white px-5 py-4">
           <button
-            className="mt-6 w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900"
+            className="mx-auto flex w-full max-w-md items-center justify-center rounded-xl bg-indigo-600 px-4 py-3.5 font-medium text-white shadow-sm shadow-indigo-600/30 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
             disabled={status === "saving"}
             onClick={submitScores}
           >
@@ -168,39 +187,59 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 px-4 py-6 dark:bg-black">
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-6 flex items-center justify-between">
+    <div className="flex flex-1 flex-col bg-slate-50">
+      <div className="bg-gradient-to-b from-indigo-600 to-indigo-500 px-5 pb-8 pt-8 text-white">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Hi, {evaluatorName}
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Select a booth to rate</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-indigo-100">
+              Evaluator
+            </p>
+            <h1 className="text-xl font-semibold">{evaluatorName}</h1>
           </div>
-          <Link href="/results" className="text-sm font-medium text-zinc-500 underline dark:text-zinc-400">
-            Results
+          <Link
+            href="/results"
+            className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
+          >
+            View Results
           </Link>
         </div>
+        <div className="mx-auto mt-4 w-full max-w-md text-sm text-indigo-100">
+          {submittedBooths.size} of {BOOTHS.length} booths rated
+        </div>
+      </div>
 
+      <div className="mx-auto -mt-4 w-full max-w-md flex-1 px-5 pb-8">
         {status === "saved" && (
-          <p className="mb-4 text-sm text-green-600 dark:text-green-400">Scores saved!</p>
+          <p className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700 ring-1 ring-green-100">
+            ✓ Scores saved successfully
+          </p>
         )}
 
         <div className="flex flex-col gap-3">
-          {BOOTHS.map((booth) => (
-            <button
-              key={booth}
-              onClick={() => openBooth(booth)}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <span className="font-medium text-zinc-900 dark:text-zinc-50">{booth}</span>
-              {submittedBooths.has(booth) && (
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                  ✓ Rated
-                </span>
-              )}
-            </button>
-          ))}
+          {BOOTHS.map((booth) => {
+            const done = submittedBooths.has(booth);
+            return (
+              <button
+                key={booth}
+                onClick={() => openBooth(booth)}
+                className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
+              >
+                <div>
+                  <span className="font-semibold text-slate-900">{booth}</span>
+                  {!done && <p className="mt-0.5 text-xs text-slate-400">Tap to rate</p>}
+                </div>
+                {done ? (
+                  <span className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                    ✓ Rated
+                  </span>
+                ) : (
+                  <span className="text-slate-300" aria-hidden>
+                    →
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
