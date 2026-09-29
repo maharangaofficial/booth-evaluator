@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
   if (!scores || typeof scores !== "object") {
     return NextResponse.json({ error: "Scores are required" }, { status: 400 });
   }
+  if (!comment) {
+    return NextResponse.json({ error: "A remark is required" }, { status: 400 });
+  }
+
+  for (const criterion of CRITERION_KEYS) {
+    if (!(criterion in scores)) {
+      return NextResponse.json({ error: `Missing score for ${criterion}` }, { status: 400 });
+    }
+  }
 
   for (const [criterion, score] of Object.entries(scores)) {
     if (!CRITERION_KEYS.has(criterion as never)) {
@@ -45,14 +54,12 @@ export async function POST(req: NextRequest) {
     `;
   }
 
-  if (comment) {
-    await sql`
-      INSERT INTO comments (evaluator_name, booth, comment)
-      VALUES (${evaluatorName}, ${booth}, ${comment})
-      ON CONFLICT (evaluator_name, booth)
-      DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
-    `;
-  }
+  await sql`
+    INSERT INTO comments (evaluator_name, booth, comment)
+    VALUES (${evaluatorName}, ${booth}, ${comment})
+    ON CONFLICT (evaluator_name, booth)
+    DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
+  `;
 
   return NextResponse.json({ ok: true });
 }

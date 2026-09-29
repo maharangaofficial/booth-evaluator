@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { BOOTHS, CRITERIA } from "@/lib/data";
 
 export default function Home() {
@@ -51,20 +50,14 @@ export default function Home() {
     [selectedCode]
   );
 
-  const groupedByRoom = useMemo(() => {
-    const groups = new Map<string, typeof BOOTHS>();
-    for (const booth of BOOTHS) {
-      const list = groups.get(booth.room) ?? [];
-      list.push(booth);
-      groups.set(booth.room, list);
-    }
-    return [...groups.entries()];
-  }, []);
-
   async function submitScores() {
     if (!selectedBooth) return;
     if (Object.keys(scores).length < CRITERIA.length) {
       setErrorMessage("Please rate every criterion before submitting.");
+      return;
+    }
+    if (!comment.trim()) {
+      setErrorMessage("Please add a remark before submitting.");
       return;
     }
 
@@ -151,7 +144,7 @@ export default function Home() {
             <span aria-hidden>←</span> Back to booths
           </button>
           <p className="text-xs font-medium uppercase tracking-wide text-indigo-500">
-            {selectedBooth.bu} · {selectedBooth.room}
+            {selectedBooth.bu}
           </p>
           <h1 className="text-xl font-semibold text-slate-900">{selectedBooth.theme}</h1>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -192,12 +185,12 @@ export default function Home() {
 
             <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
               <div className="mb-2 text-sm font-semibold text-slate-800">
-                Comments <span className="font-normal text-slate-400">(optional)</span>
+                Remarks <span className="font-normal text-red-500">*required</span>
               </div>
               <textarea
                 className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                 rows={3}
-                placeholder="Any feedback for this booth…"
+                placeholder="Share your feedback for this booth…"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
@@ -227,19 +220,11 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col bg-slate-50">
       <div className="bg-gradient-to-b from-indigo-600 to-indigo-500 px-5 pb-8 pt-8 text-white">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-indigo-100">
-              Evaluator
-            </p>
-            <h1 className="text-xl font-semibold">{evaluatorName}</h1>
-          </div>
-          <Link
-            href="/results"
-            className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
-          >
-            View Results
-          </Link>
+        <div className="mx-auto w-full max-w-md">
+          <p className="text-xs font-medium uppercase tracking-wide text-indigo-100">
+            Evaluator
+          </p>
+          <h1 className="text-xl font-semibold">{evaluatorName}</h1>
         </div>
         <div className="mx-auto mt-4 w-full max-w-md text-sm text-indigo-100">
           {submittedBooths.size} of {BOOTHS.length} booths rated
@@ -253,43 +238,34 @@ export default function Home() {
           </p>
         )}
 
-        <div className="flex flex-col gap-6">
-          {groupedByRoom.map(([room, booths]) => (
-            <div key={room}>
-              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {room}
-              </h2>
-              <div className="flex flex-col gap-3">
-                {booths.map((booth) => {
-                  const done = submittedBooths.has(booth.code);
-                  return (
-                    <button
-                      key={booth.code}
-                      onClick={() => openBooth(booth.code)}
-                      className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-indigo-500">
-                          {booth.bu}
-                        </p>
-                        <span className="font-semibold text-slate-900">{booth.theme}</span>
-                        {!done && <p className="mt-0.5 text-xs text-slate-400">Tap to rate</p>}
-                      </div>
-                      {done ? (
-                        <span className="ml-3 flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                          ✓ Rated
-                        </span>
-                      ) : (
-                        <span className="ml-3 shrink-0 text-slate-300" aria-hidden>
-                          →
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-col gap-3">
+          {BOOTHS.map((booth) => {
+            const done = submittedBooths.has(booth.code);
+            return (
+              <button
+                key={booth.code}
+                onClick={() => openBooth(booth.code)}
+                className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
+              >
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-indigo-500">
+                    {booth.bu}
+                  </p>
+                  <span className="font-semibold text-slate-900">{booth.theme}</span>
+                  {!done && <p className="mt-0.5 text-xs text-slate-400">Tap to rate</p>}
+                </div>
+                {done ? (
+                  <span className="ml-3 flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                    ✓ Rated
+                  </span>
+                ) : (
+                  <span className="ml-3 shrink-0 text-slate-300" aria-hidden>
+                    →
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
