@@ -24,11 +24,9 @@ export const BOOTHS: Booth[] = [
 ];
 
 export const CRITERIA = [
-  { key: "business_impact", label: "Business Impact" },
-  { key: "reusability", label: "Reusability & Leverage" },
-  { key: "innovation", label: "Innovation" },
   { key: "booth_experience", label: "Booth Experience & Engagement" },
-  { key: "presentation", label: "Presentation Effectiveness" },
+  { key: "innovation", label: "Innovation" },
+  { key: "reusability", label: "Reusability & Leverage" },
 ] as const;
 
 export type CriterionKey = (typeof CRITERIA)[number]["key"];
