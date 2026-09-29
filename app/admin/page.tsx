@@ -81,6 +81,53 @@ export default function AdminPage() {
     }).sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
   }, [rows, comments]);
 
+  function downloadCsv() {
+    const header = [
+      "BU",
+      "Booth Theme",
+      "Room",
+      "Evaluator",
+      ...CRITERIA.map((c) => c.label),
+      "Total",
+      "Comment",
+    ];
+
+    const lines = [header];
+
+    for (const { booth, perEvaluator } of summary) {
+      for (const ev of perEvaluator) {
+        lines.push([
+          booth.bu,
+          booth.theme,
+          booth.room,
+          ev.name,
+          ...ev.criteriaScores.map((c) => String(c.score ?? "")),
+          String(ev.total),
+          ev.comment,
+        ]);
+      }
+    }
+
+    const csv = lines
+      .map((line) =>
+        line
+          .map((cell) => {
+            const escaped = cell.replace(/"/g, '""');
+            return /[",\n]/.test(cell) ? `"${escaped}"` : escaped;
+          })
+          .join(",")
+      )
+      .join("\r\n");
+
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `booth-scores-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (!authorized) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 px-6 py-16">
@@ -122,12 +169,20 @@ export default function AdminPage() {
       <div className="bg-gradient-to-b from-slate-800 to-slate-700 px-5 pb-8 pt-8 text-white">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between">
           <h1 className="text-xl font-semibold">L&amp;D Admin Dashboard</h1>
-          <Link
-            href="/results"
-            className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
-          >
-            Public Results
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadCsv}
+              className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
+            >
+              ⬇ Download CSV
+            </button>
+            <Link
+              href="/results"
+              className="rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:bg-white/25"
+            >
+              Public Results
+            </Link>
+          </div>
         </div>
         <p className="mx-auto mt-1 w-full max-w-2xl text-sm text-slate-300">
           Consolidated and individual evaluator scores

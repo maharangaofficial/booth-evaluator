@@ -18,12 +18,16 @@ export default function Home() {
     if (savedName) {
       setEvaluatorName(savedName);
       setNameConfirmed(true);
-    }
-    const savedSubmitted = localStorage.getItem("submittedBooths");
-    if (savedSubmitted) {
-      setSubmittedBooths(new Set(JSON.parse(savedSubmitted)));
+      loadSubmittedBooths(savedName);
     }
   }, []);
+
+  function loadSubmittedBooths(name: string) {
+    fetch(`/api/scores?evaluatorName=${encodeURIComponent(name)}`)
+      .then((res) => res.json())
+      .then((data) => setSubmittedBooths(new Set(data.submittedBooths || [])))
+      .catch(() => {});
+  }
 
   function confirmName() {
     const trimmed = evaluatorName.trim();
@@ -31,6 +35,7 @@ export default function Home() {
     localStorage.setItem("evaluatorName", trimmed);
     setEvaluatorName(trimmed);
     setNameConfirmed(true);
+    loadSubmittedBooths(trimmed);
   }
 
   function openBooth(code: string) {
@@ -81,10 +86,8 @@ export default function Home() {
         throw new Error(data.error || "Failed to submit scores");
       }
 
-      const updated = new Set(submittedBooths);
-      updated.add(selectedBooth.code);
-      setSubmittedBooths(updated);
-      localStorage.setItem("submittedBooths", JSON.stringify([...updated]));
+      setSubmittedBooths((prev) => new Set(prev).add(selectedBooth.code));
+      loadSubmittedBooths(evaluatorName);
 
       setStatus("saved");
       setSelectedCode(null);

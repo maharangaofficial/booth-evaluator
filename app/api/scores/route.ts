@@ -64,9 +64,18 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   await ensureSchema();
   const sql = getSql();
+
+  const evaluatorName = req.nextUrl.searchParams.get("evaluatorName")?.trim();
+
+  if (evaluatorName) {
+    const rows = await sql`
+      SELECT DISTINCT booth FROM scores WHERE evaluator_name = ${evaluatorName}
+    `;
+    return NextResponse.json({ submittedBooths: rows.map((r) => r.booth) });
+  }
 
   const [rows, comments] = await Promise.all([
     sql`SELECT booth, criterion, score, evaluator_name FROM scores`,
