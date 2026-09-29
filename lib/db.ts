@@ -20,17 +20,29 @@ let schemaReady: Promise<void> | null = null;
 export function ensureSchema(): Promise<void> {
   if (!schemaReady) {
     const sql = getSql();
-    schemaReady = sql`
-      CREATE TABLE IF NOT EXISTS scores (
-        id SERIAL PRIMARY KEY,
-        evaluator_name TEXT NOT NULL,
-        booth TEXT NOT NULL,
-        criterion TEXT NOT NULL,
-        score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        UNIQUE (evaluator_name, booth, criterion)
-      )
-    `.then(() => undefined);
+    schemaReady = Promise.all([
+      sql`
+        CREATE TABLE IF NOT EXISTS scores (
+          id SERIAL PRIMARY KEY,
+          evaluator_name TEXT NOT NULL,
+          booth TEXT NOT NULL,
+          criterion TEXT NOT NULL,
+          score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          UNIQUE (evaluator_name, booth, criterion)
+        )
+      `,
+      sql`
+        CREATE TABLE IF NOT EXISTS comments (
+          id SERIAL PRIMARY KEY,
+          evaluator_name TEXT NOT NULL,
+          booth TEXT NOT NULL,
+          comment TEXT NOT NULL DEFAULT '',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          UNIQUE (evaluator_name, booth)
+        )
+      `,
+    ]).then(() => undefined);
   }
   return schemaReady;
 }

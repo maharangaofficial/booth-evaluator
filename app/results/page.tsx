@@ -17,20 +17,22 @@ export default function Results() {
       .finally(() => setLoading(false));
   }, []);
 
-  function averageFor(booth: string, criterion?: string) {
+  function averageFor(code: string, criterion?: string) {
     const matching = rows.filter(
-      (r) => r.booth === booth && (criterion ? r.criterion === criterion : true)
+      (r) => r.booth === code && (criterion ? r.criterion === criterion : true)
     );
     if (matching.length === 0) return null;
     const sum = matching.reduce((acc, r) => acc + r.score, 0);
     return sum / matching.length;
   }
 
-  function evaluatorCount(booth: string) {
-    return new Set(rows.filter((r) => r.booth === booth).map((r) => r.evaluator_name)).size;
+  function evaluatorCount(code: string) {
+    return new Set(rows.filter((r) => r.booth === code).map((r) => r.evaluator_name)).size;
   }
 
-  const ranked = [...BOOTHS].sort((a, b) => (averageFor(b) ?? 0) - (averageFor(a) ?? 0));
+  const ranked = [...BOOTHS].sort(
+    (a, b) => (averageFor(b.code) ?? 0) - (averageFor(a.code) ?? 0)
+  );
 
   return (
     <div className="flex flex-1 flex-col bg-slate-50">
@@ -55,21 +57,27 @@ export default function Results() {
         ) : (
           <div className="flex flex-col gap-4">
             {ranked.map((booth, idx) => {
-              const overall = averageFor(booth);
+              const overall = averageFor(booth.code);
               return (
                 <div
-                  key={booth}
+                  key={booth.code}
                   className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
                         {idx + 1}
                       </span>
-                      <span className="font-semibold text-slate-900">{booth}</span>
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-indigo-500">
+                          {booth.bu}
+                        </p>
+                        <span className="font-semibold text-slate-900">{booth.theme}</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-medium text-slate-400">
-                      {evaluatorCount(booth)} evaluator{evaluatorCount(booth) === 1 ? "" : "s"}
+                    <span className="shrink-0 text-xs font-medium text-slate-400">
+                      {evaluatorCount(booth.code)} evaluator
+                      {evaluatorCount(booth.code) === 1 ? "" : "s"}
                     </span>
                   </div>
                   <div className="mb-3 flex items-baseline gap-1">
@@ -80,7 +88,7 @@ export default function Results() {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-sm">
                     {CRITERIA.map((c) => {
-                      const avg = averageFor(booth, c.key);
+                      const avg = averageFor(booth.code, c.key);
                       return (
                         <div key={c.key} className="flex items-center justify-between">
                           <span className="text-slate-500">{c.label}</span>

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BOOTHS, CRITERIA } from "@/lib/data";
 
 export default function Home() {
   const [evaluatorName, setEvaluatorName] = useState("");
   const [nameConfirmed, setNameConfirmed] = useState(false);
-  const [selectedBooth, setSelectedBooth] = useState<string | null>(null);
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [comment, setComment] = useState("");
   const [submittedBooths, setSubmittedBooths] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,9 +34,10 @@ export default function Home() {
     setNameConfirmed(true);
   }
 
-  function openBooth(booth: string) {
-    setSelectedBooth(booth);
+  function openBooth(code: string) {
+    setSelectedCode(code);
     setScores({});
+    setComment("");
     setStatus("idle");
     setErrorMessage("");
   }
@@ -43,6 +45,21 @@ export default function Home() {
   function setScore(criterion: string, value: number) {
     setScores((prev) => ({ ...prev, [criterion]: value }));
   }
+
+  const selectedBooth = useMemo(
+    () => BOOTHS.find((b) => b.code === selectedCode) ?? null,
+    [selectedCode]
+  );
+
+  const groupedByRoom = useMemo(() => {
+    const groups = new Map<string, typeof BOOTHS>();
+    for (const booth of BOOTHS) {
+      const list = groups.get(booth.room) ?? [];
+      list.push(booth);
+      groups.set(booth.room, list);
+    }
+    return [...groups.entries()];
+  }, []);
 
   async function submitScores() {
     if (!selectedBooth) return;
@@ -58,7 +75,12 @@ export default function Home() {
       const res = await fetch("/api/scores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evaluatorName, booth: selectedBooth, scores }),
+        body: JSON.stringify({
+          evaluatorName,
+          booth: selectedBooth.code,
+          scores,
+          comment,
+        }),
       });
 
       if (!res.ok) {
@@ -67,12 +89,12 @@ export default function Home() {
       }
 
       const updated = new Set(submittedBooths);
-      updated.add(selectedBooth);
+      updated.add(selectedBooth.code);
       setSubmittedBooths(updated);
       localStorage.setItem("submittedBooths", JSON.stringify([...updated]));
 
       setStatus("saved");
-      setSelectedBooth(null);
+      setSelectedCode(null);
     } catch (err) {
       setStatus("error");
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong");
@@ -124,11 +146,14 @@ export default function Home() {
         <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur">
           <button
             className="mb-2 flex items-center gap-1 text-sm font-medium text-indigo-600"
-            onClick={() => setSelectedBooth(null)}
+            onClick={() => setSelectedCode(null)}
           >
             <span aria-hidden>←</span> Back to booths
           </button>
-          <h1 className="text-xl font-semibold text-slate-900">{selectedBooth}</h1>
+          <p className="text-xs font-medium uppercase tracking-wide text-indigo-500">
+            {selectedBooth.bu} · {selectedBooth.room}
+          </p>
+          <h1 className="text-xl font-semibold text-slate-900">{selectedBooth.theme}</h1>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
               className="h-full rounded-full bg-indigo-600 transition-all"
@@ -164,6 +189,19 @@ export default function Home() {
                 </div>
               </div>
             ))}
+
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-2 text-sm font-semibold text-slate-800">
+                Comments <span className="font-normal text-slate-400">(optional)</span>
+              </div>
+              <textarea
+                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                rows={3}
+                placeholder="Any feedback for this booth…"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </div>
           </div>
 
           {errorMessage && (
@@ -215,31 +253,43 @@ export default function Home() {
           </p>
         )}
 
-        <div className="flex flex-col gap-3">
-          {BOOTHS.map((booth) => {
-            const done = submittedBooths.has(booth);
-            return (
-              <button
-                key={booth}
-                onClick={() => openBooth(booth)}
-                className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
-              >
-                <div>
-                  <span className="font-semibold text-slate-900">{booth}</span>
-                  {!done && <p className="mt-0.5 text-xs text-slate-400">Tap to rate</p>}
-                </div>
-                {done ? (
-                  <span className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                    ✓ Rated
-                  </span>
-                ) : (
-                  <span className="text-slate-300" aria-hidden>
-                    →
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="flex flex-col gap-6">
+          {groupedByRoom.map(([room, booths]) => (
+            <div key={room}>
+              <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {room}
+              </h2>
+              <div className="flex flex-col gap-3">
+                {booths.map((booth) => {
+                  const done = submittedBooths.has(booth.code);
+                  return (
+                    <button
+                      key={booth.code}
+                      onClick={() => openBooth(booth.code)}
+                      className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 text-left shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-indigo-500">
+                          {booth.bu}
+                        </p>
+                        <span className="font-semibold text-slate-900">{booth.theme}</span>
+                        {!done && <p className="mt-0.5 text-xs text-slate-400">Tap to rate</p>}
+                      </div>
+                      {done ? (
+                        <span className="ml-3 flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                          ✓ Rated
+                        </span>
+                      ) : (
+                        <span className="ml-3 shrink-0 text-slate-300" aria-hidden>
+                          →
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

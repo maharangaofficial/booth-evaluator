@@ -12,12 +12,20 @@ type Row = {
   created_at: string;
 };
 
+type Comment = {
+  booth: string;
+  evaluator_name: string;
+  comment: string;
+  created_at: string;
+};
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [expandedBooth, setExpandedBooth] = useState<string | null>(null);
 
   async function login() {
@@ -32,6 +40,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
       setRows(data.rows);
+      setComments(data.comments || []);
       setAuthorized(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -42,7 +51,8 @@ export default function AdminPage() {
 
   const summary = useMemo(() => {
     return BOOTHS.map((booth) => {
-      const boothRows = rows.filter((r) => r.booth === booth);
+      const boothRows = rows.filter((r) => r.booth === booth.code);
+      const boothComments = comments.filter((c) => c.booth === booth.code);
       const evaluators = new Set(boothRows.map((r) => r.evaluator_name));
       const overall =
         boothRows.length > 0
@@ -63,12 +73,13 @@ export default function AdminPage() {
           key: c.key,
           score: evalRows.find((r) => r.criterion === c.key)?.score ?? null,
         }));
-        return { name, total, average: total / (evalRows.length || 1), criteriaScores };
+        const comment = boothComments.find((c) => c.evaluator_name === name)?.comment ?? "";
+        return { name, total, average: total / (evalRows.length || 1), criteriaScores, comment };
       }).sort((a, b) => b.total - a.total);
 
       return { booth, overall, perCriterion, perEvaluator, evaluatorCount: evaluators.size };
     }).sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
-  }, [rows]);
+  }, [rows, comments]);
 
   if (!authorized) {
     return (
@@ -125,102 +136,130 @@ export default function AdminPage() {
 
       <div className="mx-auto -mt-4 w-full max-w-2xl flex-1 px-5 pb-10">
         <div className="flex flex-col gap-4">
-          {summary.map(({ booth, overall, perCriterion, perEvaluator, evaluatorCount }, idx) => {
-            const expanded = expandedBooth === booth;
-            return (
-              <div
-                key={booth}
-                className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100"
-              >
-                <button
-                  className="flex w-full items-center justify-between px-5 py-4 text-left"
-                  onClick={() => setExpandedBooth(expanded ? null : booth)}
+          {summary.map(
+            ({ booth, overall, perCriterion, perEvaluator, evaluatorCount }, idx) => {
+              const expanded = expandedBooth === booth.code;
+              return (
+                <div
+                  key={booth.code}
+                  className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <div className="font-semibold text-slate-900">{booth}</div>
-                      <div className="text-xs text-slate-400">
-                        {evaluatorCount} evaluator{evaluatorCount === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-indigo-600">
-                        {overall !== null ? overall.toFixed(2) : "—"}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wide text-slate-400">
-                        Consolidated
-                      </div>
-                    </div>
-                    <span
-                      className={`text-slate-300 transition-transform ${expanded ? "rotate-180" : ""}`}
-                      aria-hidden
-                    >
-                      ▾
-                    </span>
-                  </div>
-                </button>
-
-                {expanded && (
-                  <div className="border-t border-slate-100 px-5 py-4">
-                    <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-4">
-                      {perCriterion.map((c) => (
-                        <div key={c.key}>
-                          <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                            {c.label}
-                          </div>
-                          <div className="font-semibold text-slate-800">
-                            {c.avg !== null ? c.avg.toFixed(2) : "—"}
-                          </div>
+                  <button
+                    className="flex w-full items-center justify-between px-5 py-4 text-left"
+                    onClick={() => setExpandedBooth(expanded ? null : booth.code)}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-medium uppercase tracking-wide text-indigo-500">
+                          {booth.bu} · {booth.room}
                         </div>
-                      ))}
-                    </div>
-
-                    {perEvaluator.length === 0 ? (
-                      <p className="text-sm text-slate-400">No scores submitted yet.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wide text-slate-400">
-                              <th className="py-2 pr-3 font-medium">Evaluator</th>
-                              {CRITERIA.map((c) => (
-                                <th key={c.key} className="py-2 pr-3 font-medium">
-                                  {c.label}
-                                </th>
-                              ))}
-                              <th className="py-2 pr-3 font-medium">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {perEvaluator.map((ev) => (
-                              <tr key={ev.name} className="border-b border-slate-50 last:border-0">
-                                <td className="py-2 pr-3 font-medium text-slate-800">
-                                  {ev.name}
-                                </td>
-                                {ev.criteriaScores.map((c) => (
-                                  <td key={c.key} className="py-2 pr-3 text-slate-600">
-                                    {c.score ?? "—"}
-                                  </td>
-                                ))}
-                                <td className="py-2 pr-3 font-semibold text-indigo-600">
-                                  {ev.total}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="truncate font-semibold text-slate-900">
+                          {booth.theme}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {evaluatorCount} evaluator{evaluatorCount === 1 ? "" : "s"}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    </div>
+                    <div className="ml-3 flex shrink-0 items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-indigo-600">
+                          {overall !== null ? overall.toFixed(2) : "—"}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-400">
+                          Consolidated
+                        </div>
+                      </div>
+                      <span
+                        className={`text-slate-300 transition-transform ${expanded ? "rotate-180" : ""}`}
+                        aria-hidden
+                      >
+                        ▾
+                      </span>
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="border-t border-slate-100 px-5 py-4">
+                      <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-3">
+                        {perCriterion.map((c) => (
+                          <div key={c.key}>
+                            <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                              {c.label}
+                            </div>
+                            <div className="font-semibold text-slate-800">
+                              {c.avg !== null ? c.avg.toFixed(2) : "—"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {perEvaluator.length === 0 ? (
+                        <p className="text-sm text-slate-400">No scores submitted yet.</p>
+                      ) : (
+                        <>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                              <thead>
+                                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wide text-slate-400">
+                                  <th className="py-2 pr-3 font-medium">Evaluator</th>
+                                  {CRITERIA.map((c) => (
+                                    <th key={c.key} className="py-2 pr-3 font-medium">
+                                      {c.label}
+                                    </th>
+                                  ))}
+                                  <th className="py-2 pr-3 font-medium">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {perEvaluator.map((ev) => (
+                                  <tr
+                                    key={ev.name}
+                                    className="border-b border-slate-50 last:border-0"
+                                  >
+                                    <td className="py-2 pr-3 font-medium text-slate-800">
+                                      {ev.name}
+                                    </td>
+                                    {ev.criteriaScores.map((c) => (
+                                      <td key={c.key} className="py-2 pr-3 text-slate-600">
+                                        {c.score ?? "—"}
+                                      </td>
+                                    ))}
+                                    <td className="py-2 pr-3 font-semibold text-indigo-600">
+                                      {ev.total}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {perEvaluator.some((ev) => ev.comment) && (
+                            <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3">
+                              <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                                Comments
+                              </div>
+                              {perEvaluator
+                                .filter((ev) => ev.comment)
+                                .map((ev) => (
+                                  <div key={ev.name} className="rounded-lg bg-slate-50 p-3 text-sm">
+                                    <span className="font-medium text-slate-700">{ev.name}: </span>
+                                    <span className="text-slate-600">{ev.comment}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+          )}
         </div>
       </div>
     </div>
