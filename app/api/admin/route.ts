@@ -35,3 +35,18 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ rows, comments });
 }
+
+export async function DELETE(req: NextRequest) {
+  const { password } = await req.json();
+
+  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
+  }
+
+  await ensureSchema();
+  const sql = getSql();
+
+  await Promise.all([sql`DELETE FROM scores`, sql`DELETE FROM comments`]);
+
+  return NextResponse.json({ ok: true });
+}

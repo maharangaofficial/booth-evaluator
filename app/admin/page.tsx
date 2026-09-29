@@ -128,6 +128,26 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function clearAllData() {
+    const confirmed = window.confirm(
+      "This will permanently delete ALL evaluator scores and comments for every booth. This cannot be undone. Continue?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch("/api/admin", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) throw new Error("Failed to clear data");
+      setRows([]);
+      setComments([]);
+    } catch {
+      window.alert("Something went wrong while clearing data.");
+    }
+  }
+
   if (!authorized) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900 px-6 py-16">
@@ -182,6 +202,12 @@ export default function AdminPage() {
             >
               Public Results
             </Link>
+            <button
+              onClick={clearAllData}
+              className="rounded-full bg-red-500/20 px-3.5 py-1.5 text-xs font-medium text-red-100 backdrop-blur transition hover:bg-red-500/30"
+            >
+              Clear All Data
+            </button>
           </div>
         </div>
         <p className="mx-auto mt-1 w-full max-w-2xl text-sm text-slate-300">
